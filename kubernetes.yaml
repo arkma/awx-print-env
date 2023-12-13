@@ -7,6 +7,11 @@
     schedule_app_repo: "https://github.com/BlueTeam2/class-schedule-k8s.git"
 
   tasks:
+    - name: Prints two lines of messages, but only if there is an environment value set
+      ansible.builtin.debug:
+        msg:
+        - "Provisioning based on GCP_SERVICE_ACCOUNT_FILE which is: {{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
+        
     - name: Generate kubeconfig to use kubeclt
       ansible.builtin.shell: 
         cmd: |
