@@ -10,12 +10,12 @@
     - name: Generate kubeconfig to use kubeclt
       ansible.builtin.shell: 
         cmd: |
-          gcloud auth activate-service-account --key-file="$GCP_SERVICE_ACCOUNT_FILE" --project "$GCE_PROJECT"
+          gcloud auth activate-service-account --key-file="$GCP_SERVICE_ACCOUNT_FILE" --project "$GCP_PROJECT"
     
     - name: Generate kubeconfig to use kubeclt
       ansible.builtin.shell: 
         cmd: |
-          gcloud container clusters get-credentials "{{ cluster_name }}" --zone "{{ cluster_zone }}" --project "$GCE_PROJECT"
+          gcloud container clusters get-credentials "{{ cluster_name }}" --zone "{{ cluster_zone }}" --project "$GCP_PROJECT"
 
 
     - name: Add external-secrets repository
