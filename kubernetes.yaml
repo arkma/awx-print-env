@@ -2,7 +2,7 @@
 - name: Configure kubernetes cluster
   hosts: localhost
   vars:
-    cluster_name: softseve-blue-team
+    cluster_name: stage-schedule
     cluster_zone: us-central1-b
     schedule_app_repo: "https://github.com/BlueTeam2/class-schedule-k8s.git"
 
