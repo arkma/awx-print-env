@@ -1,0 +1,55 @@
+---
+- name: Configure kubernetes cluster
+  hosts: localhost
+  vars:
+    cluster_name: softseve-blue-team
+    cluster_zone: us-central1-b
+    schedule_app_repo: "https://github.com/BlueTeam2/class-schedule-k8s.git"
+
+  tasks:
+    - name: Generate kubeconfig to use kubeclt
+      ansible.builtin.shell: 
+        cmd: |
+          gcloud auth activate-service-account --key-file="$GCP_SERVICE_ACCOUNT_FILE" --project "$GCE_PROJECT"
+    
+    - name: Generate kubeconfig to use kubeclt
+      ansible.builtin.shell: 
+        cmd: |
+          gcloud container clusters get-credentials "{{ cluster_name }}" --zone "{{ cluster_zone }}" --project "$GCE_PROJECT"
+
+
+    - name: Add external-secrets repository
+      kubernetes.core.helm_repository:
+        repo_name: external-secrets
+        repo_url: "https://charts.external-secrets.io"
+
+    - name: Deploy external-secrets chart
+      kubernetes.core.helm:
+        chart_ref: external-secrets/external-secrets
+        create_namespace: true
+        release_namespace: external-secrets
+        release_name: external-secrets
+        set_values:
+          - value: installCRDs=true
+
+    - name: Git clone stable repo on HEAD
+      ansible.builtin.git:
+        repo: "{{ schedule_app_repo }}"
+        dest: /tmp/helm_class_schedule
+
+    - name: Deploy backend
+      kubernetes.core.helm:
+        release_name: backend
+        chart_ref: /tmp/helm_class_schedule/backend
+        release_namespace: schedule-app
+        create_namespace: true
+        dependency_update: true
+        set_values:
+          - value: environmentType=stage
+
+    - name: Deploy frontend
+      kubernetes.core.helm:
+        release_name: frontend
+        chart_ref: /tmp/helm_class_schedule/frontend
+        release_namespace: schedule-app
+        create_namespace: true
