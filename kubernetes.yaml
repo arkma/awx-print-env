@@ -13,6 +13,7 @@
     es_repo_name: external-secrets
     es_chart_name: external-secrets
     es_namespace: external-secrets
+    es_release_name: external-secrets
     es_overwrite_values:
       - value: installCRDs=true
    
@@ -49,7 +50,7 @@
         chart_ref: "{{ es_repo_name }}/{{ es_chart_name }}"
         create_namespace: true
         release_namespace: "{{ es_namespace }}"
-        release_name: "{{ es_releas_name }}"
+        release_name: "{{ es_release_name }}"
         set_values: "{{ es_overwrite_values }}"
 
     - name: Git clone stable repo on HEAD
@@ -60,7 +61,7 @@
     - name: Deploy backend
       kubernetes.core.helm:
         release_name: "{{ schedule_app_backend_name }}"
-        chart_ref: "{{ schedule_app_clone_dir }}/backend"
+        chart_ref: "{{ schedule_app_clone_dir }}/{{ schedule_app_backend_name }}"
         release_namespace: "{{ schedule_app_namespace }}"
         create_namespace: true
         dependency_update: true
@@ -69,6 +70,6 @@
     - name: Deploy frontend
       kubernetes.core.helm:
         release_name: "{{ schedule_app_frontend_name }}"
-        chart_ref: "{{ schedule_app_clone_dir }}/frontend"
+        chart_ref: "{{ schedule_app_clone_dir }}/{{ schedule_app_frontend_name }}"
         release_namespace: "{{ schedule_app_namespace }}"
         create_namespace: true
