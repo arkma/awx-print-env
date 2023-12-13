@@ -2,66 +2,73 @@
 - name: Configure kubernetes cluster
   hosts: localhost
   vars:
+    # GCP configuration
+    gcp_sa_env: GCP_SERVICE_ACCOUNT_FILE
+    gcp_project_env: GCP_PROJECT
     cluster_name: stage-schedule
     cluster_zone: us-central1-b
+    
+    # External secrets (es) variables
+    es_repo_url: "https://charts.external-secrets.io"
+    es_repo_name: external-secrets
+    es_chart_name: external-secrets
+    es_namespace: external-secrets
+    es_overwrite_values:
+      - value: installCRDs=true
+   
+   # Application
     schedule_app_repo: "https://github.com/BlueTeam2/class-schedule-k8s.git"
+    schedule_app_clone_dir: /tmp/helm_class_schedule
+    schedule_app_namespace: schedule-app
+    schedule_app_backend_name: backend
+    schedule_app_frontend_name: frontend
+    schedule_app_backend_overwrite_values:
+      - value: installCRDs=true
+
+
 
   tasks:
-    - name: Get environment variables
-      shell: "env"
-      register: env_output
-
-    - debug:
-        var: env_output.stdout_lines
-        
-    - name: Prints two lines of messages, but only if there is an environment value set
-      ansible.builtin.debug:
-        msg:
-        - "Provisioning based on GCP_SERVICE_ACCOUNT_FILE which is: {{ lookup('ansible.builtin.env', 'GCP_SERVICE_ACCOUNT_FILE') }}"
-        
     - name: Generate kubeconfig to use kubeclt
       ansible.builtin.shell: 
         cmd: |
-          gcloud auth activate-service-account --key-file="$GCP_SERVICE_ACCOUNT_FILE" --project "$GCP_PROJECT"
+          gcloud auth activate-service-account --key-file="${{ gcp_sa_env }}" --project "${{ gcp_project_env }}"
     
     - name: Generate kubeconfig to use kubeclt
       ansible.builtin.shell: 
         cmd: |
-          gcloud container clusters get-credentials "{{ cluster_name }}" --zone "{{ cluster_zone }}" --project "$GCP_PROJECT"
+          gcloud container clusters get-credentials "{{ cluster_name }}" --zone "{{ cluster_zone }}" --project "${{ gcp_project_env }}"
 
 
     - name: Add external-secrets repository
       kubernetes.core.helm_repository:
-        repo_name: external-secrets
-        repo_url: "https://charts.external-secrets.io"
+        repo_name: "{{ es_repo_name }}"
+        repo_url: "{{ es_repo_url }}"
 
     - name: Deploy external-secrets chart
       kubernetes.core.helm:
-        chart_ref: external-secrets/external-secrets
+        chart_ref: "{{ es_repo_name }}/{{ es_chart_name }}"
         create_namespace: true
-        release_namespace: external-secrets
-        release_name: external-secrets
-        set_values:
-          - value: installCRDs=true
+        release_namespace: "{{ es_namespace }}"
+        release_name: "{{ es_releas_name }}"
+        set_values: "{{ es_overwrite_values }}"
 
     - name: Git clone stable repo on HEAD
       ansible.builtin.git:
         repo: "{{ schedule_app_repo }}"
-        dest: /tmp/helm_class_schedule
+        dest: "{{ schedule_app_clone_dir }}"
 
     - name: Deploy backend
       kubernetes.core.helm:
-        release_name: backend
-        chart_ref: /tmp/helm_class_schedule/backend
-        release_namespace: schedule-app
+        release_name: "{{ schedule_app_backend_name }}"
+        chart_ref: "{{ schedule_app_clone_dir }}/backend"
+        release_namespace: "{{ schedule_app_namespace }}"
         create_namespace: true
         dependency_update: true
-        set_values:
-          - value: environmentType=stage
+        set_values: "{{ schedule_app_backend_overwrite_values }}"
 
     - name: Deploy frontend
       kubernetes.core.helm:
-        release_name: frontend
-        chart_ref: /tmp/helm_class_schedule/frontend
-        release_namespace: schedule-app
+        release_name: "{{ schedule_app_frontend_name }}"
+        chart_ref: "{{ schedule_app_clone_dir }}/frontend"
+        release_namespace: "{{ schedule_app_namespace }}"
         create_namespace: true
