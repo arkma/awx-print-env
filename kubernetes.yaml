@@ -7,6 +7,13 @@
     schedule_app_repo: "https://github.com/BlueTeam2/class-schedule-k8s.git"
 
   tasks:
+    - name: Get environment variables
+      shell: "env"
+      register: env_output
+
+    - debug:
+        var: env_output.stdout_lines
+        
     - name: Prints two lines of messages, but only if there is an environment value set
       ansible.builtin.debug:
         msg:
